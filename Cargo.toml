@@ -53,6 +53,16 @@ opt-level = 3
 [profile.dev.package.wgpu-types]
 debug-assertions = false
 
+# Optimize for build time in CI.
+[profile.ci]
+inherits = "dev"
+opt-level = 0
+debug = "line-tables-only"
+codegen-units = 4
+
+[profile.ci.package."*"]
+opt-level = 0
+
 [profile.release]
 # Compile the entire crate as one unit.
 # Slows compile times, marginal improvements.
@@ -60,12 +70,3 @@ codegen-units = 1
 # Do a second optimization pass over the entire program, including dependencies.
 # Slows compile times, marginal improvements.
 lto = "thin"
-
-# [target.x86_64-pc-windows-msvc]
-# linker = "rust-lld.exe"
-# rustdocflags = [ "-Clinker=rust-lld.exe" ]
-# rustflags = [
-#     # Nightly
-#     # "-Zshare-generics=n", # This needs to be off if you use dynamic linking on Windows.
-#     # "-Zthreads=0",
-# ]
