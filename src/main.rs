@@ -2,7 +2,7 @@ use bevy::prelude::*;
 
 use crate::{
     camera::{CameraPlugin, MainCameraBundle},
-    card::{Card, CardPlugin},
+    card::{Card, CardPlugin, StackedOn},
 };
 
 mod camera;
@@ -53,7 +53,12 @@ fn setup(
     ));
 
     // Cards
-    commands.spawn((Card, Transform::from_xyz(0., 0.01, 0.)));
     commands.spawn((Card, Transform::from_xyz(2., 0.01, 0.)));
     commands.spawn((Card, Transform::from_xyz(-2., 0.01, 0.)));
+
+    let mut root = commands
+        .spawn((Card, Transform::from_xyz(0., 0.01, 0.)))
+        .id();
+    root = commands.spawn((Card, StackedOn(root))).id();
+    commands.spawn((Card, StackedOn(root)));
 }
