@@ -45,7 +45,9 @@ fn on_card_added(
             ))
             .observe(update_material_on::<Pointer<Over>>(hover_mat.clone()))
             .observe(update_material_on::<Pointer<Out>>(normal_mat.clone()))
-            .observe(move_on_drag);
+            .observe(move_on_drag)
+            .observe(on_drag_start)
+            .observe(on_drag_end);
     }
 }
 
@@ -80,37 +82,51 @@ fn update_material_on<E: EntityEvent>(
     }
 }
 
-fn move_on_drag(
-    event: On<Pointer<Drag>>,
+fn on_drag_start(
+    event: On<Pointer<DragStart>>,
     mut commands: Commands,
     mut cards: Query<&mut Transform, With<Card>>,
-    camera: Single<(&Camera, &GlobalTransform), With<MainCamera>>,
 ) -> Result {
-    let (camera, camera_transform) = *camera;
-
-    let mut card = cards.get_mut(event.entity)?;
+    let mut transform = cards.get_mut(event.entity)?;
+    transform.translation.y = 0.5;
 
     // Remove from stack
     commands.entity(event.entity).try_remove::<StackedOn>();
 
-    let current_pos = event.pointer_location.position;
-    let prev_pos = current_pos - event.delta;
+    Ok(())
+}
 
+fn on_drag_end(
+    event: On<Pointer<DragEnd>>,
+    mut cards: Query<&mut Transform, With<Card>>,
+) -> Result {
+    let mut transform = cards.get_mut(event.entity)?;
+    transform.translation.y = 0.01;
+
+    Ok(())
+}
+
+fn move_on_drag(
+    event: On<Pointer<Drag>>,
+    mut cards: Query<&mut Transform, With<Card>>,
+    camera: Single<(&Camera, &GlobalTransform), With<MainCamera>>,
+) -> Result {
+    let (camera, camera_transform) = *camera;
+    let mut card = cards.get_mut(event.entity)?;
+
+    let current_pos = event.pointer_location.position;
     let plane_origin = Vec3::new(0.0, card.translation.y, 0.0);
     let plane = InfinitePlane3d::new(Vec3::Y);
 
     let current_ray = camera.viewport_to_world(camera_transform, current_pos)?;
-    let prev_ray = camera.viewport_to_world(camera_transform, prev_pos)?;
 
     let current_dist = current_ray
         .intersect_plane(plane_origin, plane)
         .ok_or("Ray don't interset plane")?;
-    let prev_dist = prev_ray
-        .intersect_plane(plane_origin, plane)
-        .ok_or("Ray don't interset plane")?;
 
-    let world_delta = current_ray.get_point(current_dist) - prev_ray.get_point(prev_dist);
-    card.translation.x += world_delta.x;
-    card.translation.z += world_delta.z;
+    card.translation = current_ray
+        .get_point(current_dist)
+        .with_y(card.translation.y);
+
     Ok(())
 }
