@@ -56,12 +56,12 @@ fn update_card_stack(
     mut cards: Query<(&mut Transform, Option<&StackedWith>), (With<Card>, With<StackedOn>)>,
 ) {
     for (root_pos, root_stack) in roots {
-        let mut position = root_pos.clone();
+        let mut position = *root_pos;
         let mut stack = *root_stack;
         while let Ok((mut card_pos, card_stack)) = cards.get_mut(stack.0) {
             position.translation.z += 0.2;
             position.translation.y += 0.01;
-            *card_pos = position.clone();
+            *card_pos = position;
 
             stack = match card_stack {
                 Some(s) => *s,
