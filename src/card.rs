@@ -98,10 +98,49 @@ fn on_drag_start(
 
 fn on_drag_end(
     event: On<Pointer<DragEnd>>,
-    mut cards: Query<&mut Transform, With<Card>>,
+    mut commands: Commands,
+    mut cards: Query<(Entity, &mut Transform), With<Card>>,
+    stacked_with: Query<&StackedWith, With<Card>>,
 ) -> Result {
-    let mut transform = cards.get_mut(event.entity)?;
-    transform.translation.y = 0.01;
+    info!("Drag end: {}", event.entity);
+
+    let dragged = event.entity;
+    let dragged_pos = cards.get(dragged).map(|(_, t)| t.translation)?;
+
+    // Collect the dragged card's own sub-stack (itself + cards stacked on it)
+    // to avoid creating cycles when checking collisions
+    let mut own_stack = vec![dragged];
+    let mut cursor = dragged;
+    while let Ok(sw) = stacked_with.get(cursor) {
+        own_stack.push(sw.0);
+        cursor = sw.0;
+    }
+
+    // Find a card to stack on (AABB check on XZ plane)
+    let mut stack_top = None;
+    for (entity, transform) in cards.iter() {
+        if own_stack.contains(&entity) {
+            continue;
+        }
+
+        let dx = (dragged_pos.x - transform.translation.x).abs();
+        let dz = (dragged_pos.z - transform.translation.z).abs();
+        if dx < 0.31 && dz < 0.5 {
+            // Traverse to the top of this card's stack
+            let mut top = entity;
+            while let Ok(sw) = stacked_with.get(top) {
+                top = sw.0;
+            }
+            stack_top = Some(top);
+            break;
+        }
+    }
+
+    cards.get_mut(dragged)?.1.translation.y = 0.01;
+
+    if let Some(top) = stack_top {
+        commands.entity(dragged).insert(StackedOn(top));
+    }
 
     Ok(())
 }

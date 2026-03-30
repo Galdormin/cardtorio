@@ -1,5 +1,7 @@
 use bevy::prelude::*;
 
+use bevy_inspector_egui::{bevy_egui::EguiPlugin, quick::WorldInspectorPlugin};
+
 use crate::{
     camera::{CameraPlugin, MainCameraBundle},
     card::{Card, CardPlugin, StackedOn},
@@ -15,6 +17,8 @@ fn main() -> AppExit {
     app.add_plugins((DefaultPlugins, MeshPickingPlugin));
 
     // 3rd party plugins
+    #[cfg(feature = "dev")]
+    app.add_plugins((EguiPlugin::default(), WorldInspectorPlugin::new()));
 
     // Crate plugins
     app.add_plugins((CameraPlugin, CardPlugin));
